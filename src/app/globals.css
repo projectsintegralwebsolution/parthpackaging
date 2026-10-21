@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --brand-red: #F20D16;
+  --brand-red-dark: #C80910;
+  --brand-red-soft: #FEF2F2;
+  --brand-blue: #1769AA;
+  --brand-blue-dark: #115293;
+  --brand-blue-soft: #EDF5FD;
+  --brand-charcoal: #292B29;
+  --brand-charcoal-deep: #0F1722;
+  --brand-charcoal-muted: #3A3D3A;
+  --brand-white: #FFFFFF;
+  --brand-surface: #F4F6F8;
+  --brand-surface-alt: #E8ECEF;
+  --brand-grey: #747474;
+  --brand-border: #E2E2DE;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    color: var(--brand-charcoal);
+    background-color: var(--brand-white);
+    font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    color: var(--brand-charcoal);
+    background-color: var(--brand-white);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-manrope), system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Subtle industrial grid background pattern */
+.bg-industrial-grid {
+  background-image: 
+    linear-gradient(to right, rgba(41, 43, 41, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(41, 43, 41, 0.04) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+.bg-industrial-grid-dark {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Custom scrollbar for studio drawer */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F5F5F3;
+}
+::-webkit-scrollbar-thumb {
+  background: #C4C4BE;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #747474;
+}
