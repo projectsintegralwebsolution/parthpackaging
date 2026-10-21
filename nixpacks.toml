@@ -1,0 +1,19 @@
+# Nixpacks configuration for Dokploy deployment
+# Enforces Node.js 20+ required by Next.js 15 and Tailwind CSS v4
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "npm-10_x"]
+
+[phases.install]
+cmds = [
+  "npm install --include=optional",
+  "npm install --prefix backend"
+]
+
+[phases.build]
+cmds = [
+  "npm run build"
+]
+
+[start]
+cmd = "npm run start"
