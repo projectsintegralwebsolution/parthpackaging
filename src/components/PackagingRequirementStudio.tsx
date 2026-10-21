@@ -249,14 +249,30 @@ export default function PackagingRequirementStudio({
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/enquiry", {
+      const payload = {
+        ...values,
+        sourcePageUrl:
+          typeof window !== "undefined"
+            ? window.location.href
+            : "https://parthpackaging.com",
+        formType: `Packaging Requirement Studio (${values.inquiryMode.toUpperCase()})`,
+      };
+
+      const apiEndpoint = process.env.NEXT_PUBLIC_API_URL
+        ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/api/enquiries`
+        : "/api/enquiries";
+
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
       const data = await response.json();
 
-      if (!response.ok || !data.ok) {
+      const isSuccess =
+        response.ok && (data.success === true || data.ok === true);
+
+      if (!isSuccess) {
         if (data.errors) {
           setErrors(data.errors);
         }
@@ -632,6 +648,18 @@ export default function PackagingRequirementStudio({
                     noValidate
                     className="space-y-5"
                   >
+                    {/* Invisible bot honeypot trap */}
+                    <input
+                      type="text"
+                      name="website_hp"
+                      value=""
+                      readOnly
+                      tabIndex={-1}
+                      autoComplete="off"
+                      className="hidden"
+                      aria-hidden="true"
+                    />
+
                     {submitError && (
                       <div
                         role="alert"
