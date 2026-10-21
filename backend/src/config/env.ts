@@ -21,13 +21,6 @@ export interface AppConfig {
     parthPackagingEmail: string;
     integralWebSolutionEmail: string;
   };
-  database: {
-    url: string;
-  };
-  rateLimit: {
-    max: number;
-    windowMs: number;
-  };
 }
 
 // Validate and parse environment variables
@@ -54,18 +47,9 @@ const smtpFrom =
 const parthPackagingEmail =
   process.env.PARTH_PACKAGING_EMAIL || "info@parthpackaging.com";
 
-// CRITICAL: Must be princekumarjha80@gmail.com as instructed
+// Mandatory Integral Web Solution recipient: princekumarjha80@gmail.com
 const integralWebSolutionEmail =
   process.env.INTEGRAL_WEB_SOLUTION_EMAIL || "princekumarjha80@gmail.com";
-
-const databaseUrl =
-  process.env.DATABASE_URL || "sqlite:./data/enquiries.db";
-
-const rateLimitMax = parseInt(process.env.RATE_LIMIT_MAX || "10", 10);
-const rateLimitWindowMs = parseInt(
-  process.env.RATE_LIMIT_WINDOW_MS || "900000",
-  10
-); // 15 mins default
 
 export const config: AppConfig = {
   port,
@@ -83,30 +67,23 @@ export const config: AppConfig = {
     parthPackagingEmail,
     integralWebSolutionEmail,
   },
-  database: {
-    url: databaseUrl,
-  },
-  rateLimit: {
-    max: rateLimitMax,
-    windowMs: rateLimitWindowMs,
-  },
 };
 
 /**
- * Check if real SMTP credentials are fully provided
+ * Checks whether live SMTP credentials are fully provided
  */
 export function isSmtpConfigured(): boolean {
   return Boolean(
     config.smtp.host &&
-      config.smtp.user &&
-      config.smtp.pass &&
-      !config.smtp.host.includes("your-email-provider") &&
-      !config.smtp.pass.includes("YOUR_SECURE")
+    config.smtp.user &&
+    config.smtp.pass &&
+    config.smtp.host !== "YOUR_SMTP_HOST" &&
+    config.smtp.user !== "YOUR_SMTP_USERNAME"
   );
 }
 
 /**
- * Validate configuration and log clean startup diagnostics without leaking secrets
+ * Safe startup environment summary without revealing passwords or keys
  */
 export function validateAndLogConfig(): void {
   console.log("--------------------------------------------------");
@@ -115,29 +92,27 @@ export function validateAndLogConfig(): void {
   console.log(`• Environment: ${config.nodeEnv}`);
   console.log(`• HTTP Port: ${config.port}`);
   console.log(`• Frontend Allowed Origin: ${config.frontendUrl}`);
-  console.log(`• Database Storage: ${config.database.url}`);
-  console.log(
-    `• Owner Notification Email: ${config.recipients.parthPackagingEmail}`
-  );
-  console.log(
-    `• Web Partner Notification Email: ${config.recipients.integralWebSolutionEmail}`
-  );
+  console.log(`• Owner Notification Email: ${config.recipients.parthPackagingEmail}`);
+  console.log(`• Web Partner Notification Email: ${config.recipients.integralWebSolutionEmail}`);
+  console.log(`• Database: None (stateless direct-dispatch per specification)`);
+  console.log(`• Rate Limiting: None (unrestricted submission capability per specification)`);
 
   if (isSmtpConfigured()) {
     console.log(
-      `• SMTP Relay: ACTIVE (${config.smtp.host}:${config.smtp.port}, secure=${config.smtp.secure})`
+      `✅ SMTP Relay: Configured via ${config.smtp.host}:${config.smtp.port} (Sender: ${config.smtp.from})`
     );
-    console.log(`• Sender (From): ${config.smtp.from}`);
   } else {
-    console.warn(
+    console.log(
       "⚠️  SMTP Relay: NOT YET CONFIGURED with live credentials."
     );
-    console.warn(
-      "   Enquiries will be safely stored in the persistent database and logged."
+    console.log(
+      "   Enquiries will simulate three-way dispatch and log details locally."
     );
-    console.warn(
-      "   Configure SMTP_HOST, SMTP_USER and SMTP_PASS in .env to activate live dispatch."
+    console.log(
+      "   Set SMTP_HOST, SMTP_USER, and SMTP_PASS in .env to activate live email delivery."
     );
   }
   console.log("--------------------------------------------------");
 }
+
+export const logEnvironmentSummary = validateAndLogConfig;

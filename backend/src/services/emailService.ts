@@ -6,16 +6,17 @@ import {
   buildDeveloperNotificationEmail,
   EmailEnquiryContext,
 } from "../templates/emailTemplates.js";
-import { EnquiryRecord } from "../repositories/enquiryRepository.js";
 
 export interface SingleEmailResult {
   success: boolean;
+  recipient: string;
   messageId?: string;
   error?: string | null;
   simulated?: boolean;
 }
 
 export interface ThreeWayEmailResult {
+  allSucceeded: boolean;
   customer: SingleEmailResult;
   owner: SingleEmailResult;
   developer: SingleEmailResult;
@@ -75,43 +76,21 @@ class EmailService {
   }
 
   /**
-   * Convert an EnquiryRecord to the template context
-   */
-  private recordToContext(record: EnquiryRecord): EmailEnquiryContext {
-    return {
-      referenceId: record.reference_id,
-      fullName: record.customer_name,
-      companyName: record.company_name,
-      email: record.customer_email,
-      countryCode: record.country_code,
-      phone: record.customer_phone,
-      inquiryMode: record.inquiry_mode,
-      productCategory: record.product_category,
-      palletOrVariant: record.pallet_or_variant,
-      quantity: record.quantity,
-      deliveryLocation: record.delivery_location,
-      specifications: record.specifications,
-      sourcePageUrl: record.source_page_url,
-      formType: record.form_type,
-      submissionTimestamp: record.submission_timestamp,
-    };
-  }
-
-  /**
    * Send Email 1: Customer Confirmation Email
    */
   public async sendCustomerConfirmation(
-    record: EnquiryRecord
+    ctx: EmailEnquiryContext
   ): Promise<SingleEmailResult> {
-    const ctx = this.recordToContext(record);
     const { subject, html, text } = buildCustomerConfirmationEmail(ctx);
+    const recipient = ctx.email;
 
     if (!isSmtpConfigured() || !this.transporter) {
       console.log(
-        `[Simulated Email 1] Customer confirmation to: ${record.customer_email} (Ref: ${record.reference_id})`
+        `[Email 1: Customer Simulated] Recipient: ${recipient} | Ref: ${ctx.referenceId}`
       );
       return {
         success: true,
+        recipient,
         simulated: true,
         messageId: `simulated-cust-${Date.now()}`,
       };
@@ -120,25 +99,30 @@ class EmailService {
     try {
       const info = await this.transporter.sendMail({
         from: config.smtp.from,
-        to: record.customer_email,
+        to: recipient,
         subject,
         html,
         text,
       });
 
+      console.log(
+        `[Email 1: Customer Sent] Recipient: ${recipient} | Message ID: ${info.messageId}`
+      );
       return {
         success: true,
+        recipient,
         messageId: info.messageId,
       };
     } catch (err: unknown) {
       const errorMsg =
         err instanceof Error ? err.message : "Unknown SMTP error occurred";
       console.error(
-        `[Email 1 Error] Failed to send customer confirmation to ${record.customer_email}:`,
+        `[Email 1 Error] Failed to send customer confirmation to ${recipient}:`,
         errorMsg
       );
       return {
         success: false,
+        recipient,
         error: errorMsg,
       };
     }
@@ -148,18 +132,18 @@ class EmailService {
    * Send Email 2: Parth Packaging Owner Notification Email
    */
   public async sendOwnerNotification(
-    record: EnquiryRecord
+    ctx: EmailEnquiryContext
   ): Promise<SingleEmailResult> {
-    const ctx = this.recordToContext(record);
     const { subject, html, text } = buildOwnerNotificationEmail(ctx);
     const recipient = config.recipients.parthPackagingEmail;
 
     if (!isSmtpConfigured() || !this.transporter) {
       console.log(
-        `[Simulated Email 2] Owner notification to: ${recipient} (Reply-To: ${record.customer_email})`
+        `[Email 2: Owner Simulated] Recipient: ${recipient} | Reply-To: ${ctx.email} | Ref: ${ctx.referenceId}`
       );
       return {
         success: true,
+        recipient,
         simulated: true,
         messageId: `simulated-owner-${Date.now()}`,
       };
@@ -169,14 +153,18 @@ class EmailService {
       const info = await this.transporter.sendMail({
         from: config.smtp.from,
         to: recipient,
-        replyTo: record.customer_email,
+        replyTo: ctx.email,
         subject,
         html,
         text,
       });
 
+      console.log(
+        `[Email 2: Owner Sent] Recipient: ${recipient} | Message ID: ${info.messageId}`
+      );
       return {
         success: true,
+        recipient,
         messageId: info.messageId,
       };
     } catch (err: unknown) {
@@ -188,6 +176,7 @@ class EmailService {
       );
       return {
         success: false,
+        recipient,
         error: errorMsg,
       };
     }
@@ -195,22 +184,23 @@ class EmailService {
 
   /**
    * Send Email 3: Integral Web Solution Notification Email
+   * MANDATORY: Uses princekumarjha80@gmail.com
    */
   public async sendDeveloperNotification(
-    record: EnquiryRecord
+    ctx: EmailEnquiryContext
   ): Promise<SingleEmailResult> {
-    const ctx = this.recordToContext(record);
     const { subject, html, text } = buildDeveloperNotificationEmail(ctx);
     const recipient = config.recipients.integralWebSolutionEmail;
 
     if (!isSmtpConfigured() || !this.transporter) {
       console.log(
-        `[Simulated Email 3] Integral Web Solution notification to: ${recipient} (Reply-To: ${record.customer_email})`
+        `[Email 3: Web Partner Simulated] Recipient: ${recipient} | Reply-To: ${ctx.email} | Ref: ${ctx.referenceId}`
       );
       return {
         success: true,
+        recipient,
         simulated: true,
-        messageId: `simulated-dev-${Date.now()}`,
+        messageId: `simulated-partner-${Date.now()}`,
       };
     }
 
@@ -218,14 +208,18 @@ class EmailService {
       const info = await this.transporter.sendMail({
         from: config.smtp.from,
         to: recipient,
-        replyTo: record.customer_email,
+        replyTo: ctx.email,
         subject,
         html,
         text,
       });
 
+      console.log(
+        `[Email 3: Web Partner Sent] Recipient: ${recipient} | Message ID: ${info.messageId}`
+      );
       return {
         success: true,
+        recipient,
         messageId: info.messageId,
       };
     } catch (err: unknown) {
@@ -237,67 +231,61 @@ class EmailService {
       );
       return {
         success: false,
+        recipient,
         error: errorMsg,
       };
     }
   }
 
   /**
-   * Send all three notifications in parallel with independent tracking
+   * Send all three notifications concurrently via Promise.allSettled()
+   * A failure for one recipient does NOT prevent attempts to send the other two.
    */
   public async sendThreeWayNotifications(
-    record: EnquiryRecord
+    ctx: EmailEnquiryContext
   ): Promise<ThreeWayEmailResult> {
     const [custResult, ownerResult, devResult] = await Promise.allSettled([
-      this.sendCustomerConfirmation(record),
-      this.sendOwnerNotification(record),
-      this.sendDeveloperNotification(record),
+      this.sendCustomerConfirmation(ctx),
+      this.sendOwnerNotification(ctx),
+      this.sendDeveloperNotification(ctx),
     ]);
 
+    const customer: SingleEmailResult =
+      custResult.status === "fulfilled"
+        ? custResult.value
+        : {
+            success: false,
+            recipient: ctx.email,
+            error: custResult.reason?.message || "Customer email dispatch failed",
+          };
+
+    const owner: SingleEmailResult =
+      ownerResult.status === "fulfilled"
+        ? ownerResult.value
+        : {
+            success: false,
+            recipient: config.recipients.parthPackagingEmail,
+            error: ownerResult.reason?.message || "Owner email dispatch failed",
+          };
+
+    const developer: SingleEmailResult =
+      devResult.status === "fulfilled"
+        ? devResult.value
+        : {
+            success: false,
+            recipient: config.recipients.integralWebSolutionEmail,
+            error: devResult.reason?.message || "Web Partner email dispatch failed",
+          };
+
+    const allSucceeded =
+      customer.success && owner.success && developer.success;
+
     return {
-      customer:
-        custResult.status === "fulfilled"
-          ? custResult.value
-          : {
-              success: false,
-              error: custResult.reason?.message || "Execution failed",
-            },
-      owner:
-        ownerResult.status === "fulfilled"
-          ? ownerResult.value
-          : {
-              success: false,
-              error: ownerResult.reason?.message || "Execution failed",
-            },
-      developer:
-        devResult.status === "fulfilled"
-          ? devResult.value
-          : {
-              success: false,
-              error: devResult.reason?.message || "Execution failed",
-            },
+      allSucceeded,
+      customer,
+      owner,
+      developer,
     };
-  }
-
-  /**
-   * Safe retry: sends only the specific notification(s) that previously failed
-   */
-  public async retryFailedEmails(
-    record: EnquiryRecord
-  ): Promise<Partial<ThreeWayEmailResult>> {
-    const results: Partial<ThreeWayEmailResult> = {};
-
-    if (record.email_customer_status !== "sent") {
-      results.customer = await this.sendCustomerConfirmation(record);
-    }
-    if (record.email_owner_status !== "sent") {
-      results.owner = await this.sendOwnerNotification(record);
-    }
-    if (record.email_developer_status !== "sent") {
-      results.developer = await this.sendDeveloperNotification(record);
-    }
-
-    return results;
   }
 }
 

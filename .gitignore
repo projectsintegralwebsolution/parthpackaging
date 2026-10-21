@@ -10,13 +10,6 @@ out
 dist
 backend/dist
 
-# Local SQLite databases and persistent data
-.data
-backend/data/*.db
-backend/data/*.db-wal
-backend/data/*.db-shm
-!backend/data/.gitkeep
-
 # Environment files (exclude all secrets, keep .env.example)
 .env
 .env.*

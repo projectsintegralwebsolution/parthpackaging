@@ -135,8 +135,8 @@ export function buildCustomerConfirmationEmail(ctx: EmailEnquiryContext): {
   html: string;
   text: string;
 } {
-  const subject = `Thank You for Your Enquiry – Parth Packaging [Ref: ${ctx.referenceId}]`;
-  const previewText = `We have received your enquiry regarding ${ctx.productCategory}. Ref: ${ctx.referenceId}`;
+  const subject = "Thank You for Your Enquiry – Parth Packaging";
+  const previewText = `We have received your enquiry regarding ${ctx.productCategory}. Reference: ${ctx.referenceId}`;
 
   const htmlContent = `
     <h2 style="margin: 0 0 12px 0; color: ${TEXT_DARK}; font-size: 20px; font-weight: 700;">
@@ -238,7 +238,7 @@ export function buildOwnerNotificationEmail(ctx: EmailEnquiryContext): {
   html: string;
   text: string;
 } {
-  const subject = `New Website Enquiry – ${ctx.productCategory} [Ref: ${ctx.referenceId}]`;
+  const subject = `New Website Enquiry – ${ctx.productCategory}`;
   const previewText = `New customer enquiry from ${ctx.fullName} (${ctx.companyName || "Individual"}). Product: ${ctx.productCategory}`;
 
   const htmlContent = `
@@ -364,7 +364,7 @@ export function buildDeveloperNotificationEmail(ctx: EmailEnquiryContext): {
   html: string;
   text: string;
 } {
-  const subject = `New Parth Packaging Website Enquiry – ${ctx.productCategory} [Ref: ${ctx.referenceId}]`;
+  const subject = `New Parth Packaging Website Enquiry – ${ctx.productCategory}`;
   const previewText = `Parth Packaging website lead: ${ctx.fullName} (${ctx.companyName || "Individual"}), Product: ${ctx.productCategory}`;
 
   const htmlContent = `
